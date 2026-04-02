@@ -7,9 +7,11 @@ import {
   DragEventHandler,
 } from "@thisbeyond/solid-dnd"
 import SequenceItem from "./SequenceItem"
-import { SequenceItemData } from "."
+import { ChordRecord, PatternRecord, SequenceItemData } from "./Guitar"
 
 interface SequenceContainerProps {
+  patterns: PatternRecord[]
+  chords: ChordRecord[]
   chordSequence: SequenceItemData[]
   onMerge: (index: number) => void
   onDelete: (index: number) => void
@@ -39,6 +41,8 @@ export default function SequenceContainer(props: SequenceContainerProps) {
           <For each={props.chordSequence} fallback={<p class="text-gray-500">Add chords to sequence</p>}>
             {(item, index) => (
               <SequenceItem
+                patterns={props.patterns}
+                chords={props.chords}
                 item={item}
                 onDelete={() => props.onDelete(index())}
                 onMerge={props.chordSequence.length - 1 === index() ? undefined : () => props.onMerge(index())}

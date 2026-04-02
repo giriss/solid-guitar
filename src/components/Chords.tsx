@@ -1,11 +1,15 @@
 import { createMemo, createSignal, For } from "solid-js"
 import { nanoid } from "nanoid"
 import { Chord } from "~/utils/guitar"
-import { allChords, additionalChords, setAdditionalChords } from "~/signals/guitar"
 import ChordCard from "./ChordCard"
 import CreateChordModal from "./CreateChordModal"
+import { ChordRecord, getChordById } from "./Guitar"
 
 interface ChordsProps {
+  chords: ChordRecord[]
+  onChordAdd: (chord: ChordRecord) => void
+  onChordDelete: (id: string) => void
+  onChordUpdate: (chord: ChordRecord) => void
   onAddToSequence: (chordId: string) => void
 }
 
@@ -15,28 +19,24 @@ export default function Chords(props: ChordsProps) {
 
   const initialChord = createMemo(() => {
     const id = editingChordId()
-    if (id) return allChords()[id]?.chord
+    if (id) return getChordById(props.chords, id)?.chord
   })
 
   const initialName = createMemo(() => {
     const id = editingChordId()
-    if (id) return allChords()[id]?.name
+    if (id) return getChordById(props.chords, id)?.name
   })
 
   const handleSaveChord = (chord: Chord, name: string, id?: string) => {
     if (id) {
-      setAdditionalChords(prev => ({ ...prev, [id]: { name, chord } }))
+      props.onChordUpdate({ id, name, chord, isEditable: true })
     } else {
-      setAdditionalChords(prev => ({ ...prev, [nanoid()]: { name, chord } }))
+      props.onChordAdd({ id: nanoid(), name, chord, isEditable: true })
     }
   }
 
   const handleChordDelete = (id: string) => {
-    setAdditionalChords(prev => {
-      const newChords = { ...prev }
-      delete newChords[id]
-      return newChords
-    })
+    props.onChordDelete(id)
   }
 
   const openCreateChordModal = () => {
@@ -61,16 +61,16 @@ export default function Chords(props: ChordsProps) {
         </button>
       </div>
 
-      <For each={Object.entries(allChords())}>
-        {([id, chordRecord]) => (
+      <For each={props.chords}>
+        {chordRecord => (
           <ChordCard
-            id={id}
+            id={chordRecord.id}
             name={chordRecord.name}
             chord={chordRecord.chord}
             onAdd={props.onAddToSequence}
             onDelete={handleChordDelete}
             onEdit={handleChordEdit}
-            isEditable={!!additionalChords()[id]}
+            isEditable={chordRecord.isEditable}
           />
         )}
       </For>

@@ -1,9 +1,17 @@
 import { createSignal, createEffect, For } from "solid-js"
-import Guitar, { type GuitarRef, type Song } from "~/components/Guitar"
+import Guitar, { type ChordRecord, type PatternRecord, type GuitarRef, type SongParameters } from "~/components/Guitar"
 import SaveSongModal from "~/components/SaveSongModal"
+import { CAGED_CHORDS, PATTERNS } from "~/utils/guitar"
+
+interface CompleteSongParameters extends SongParameters {
+  name: string
+}
+
+const DEFAULT_CHORDS = Object.entries(CAGED_CHORDS).map(([id, value]) => ({ id, name: id, chord: value, isEditable: false }))
+const DEFAULT_PATTERNS = Object.entries(PATTERNS).map(([id, value]) => ({ id, name: id, pattern: value }))
 
 export default function GuitarPage() {
-  const [songs, setSongs] = createSignal<Record<string, Song>>({})
+  const [songs, setSongs] = createSignal<CompleteSongParameters[]>([])
   const [selectedSong, setSelectedSong] = createSignal<string>("")
   let guitarRef: GuitarRef | undefined
   let modalRef: HTMLDialogElement | undefined
@@ -12,20 +20,28 @@ export default function GuitarPage() {
     try {
       const storedSongs = localStorage.getItem("songs")
       if (storedSongs) {
-        setSongs(JSON.parse(storedSongs))
+        setSongs(Object.entries<SongParameters>(JSON.parse(storedSongs)).map(
+          ([key, value]) => ({ name: key, ...value })
+        ))
       }
     } catch (error) {
       console.warn("Failed to load custom data from localStorage:", error)
     }
   })
 
+  const getSongByName = (name: string) => songs().find(song => song.name === name)
+
   const handleSaveSong = (name: string) => {
     if (!guitarRef) return
 
-    const song = guitarRef.getSong()
-    const updatedSongs = { ...songs(), [name]: song }
-    localStorage.setItem("songs", JSON.stringify(updatedSongs))
-    setSongs(updatedSongs)
+    const songParamters = guitarRef.getSongParameters()
+    const storedSongs = Object.fromEntries(songs().map(({ name, ...attrs }) => [name, attrs]))
+    const updatedStoredSongs = {
+      ...storedSongs,
+      [name]: { ...songParamters }
+    }
+    localStorage.setItem("songs", JSON.stringify(updatedStoredSongs))
+    setSongs(Object.entries(updatedStoredSongs).map(([name, attrs]) => ({ name, ...attrs })))
     setSelectedSong(name)
   }
 
@@ -42,8 +58,8 @@ export default function GuitarPage() {
             onChange={(e) => setSelectedSong(e.currentTarget.value)}
           >
             <option value="">-- New song --</option>
-            <For each={Object.keys(songs())}>
-              {(name) => <option value={name}>{name}</option>}
+            <For each={songs()}>
+              {({ name }) => <option value={name}>{name}</option>}
             </For>
           </select>
         </div>
@@ -64,7 +80,9 @@ export default function GuitarPage() {
 
       <Guitar
         ref={ref => guitarRef = ref}
-        song={selectedSong() ? songs()[selectedSong()!] : undefined}
+        song={selectedSong() ? getSongByName(selectedSong()!) : undefined}
+        defaultChords={DEFAULT_CHORDS}
+        defaultPatterns={DEFAULT_PATTERNS}
       />
     </div>
   )

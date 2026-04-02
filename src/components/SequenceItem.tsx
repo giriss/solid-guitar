@@ -1,12 +1,13 @@
-import { createEffect, createMemo } from "solid-js"
+import { createEffect, createMemo, For } from "solid-js"
 import { createSortable } from "@thisbeyond/solid-dnd"
 import { destructure } from "@solid-primitives/destructure"
-import { allChords, allPatterns } from "~/signals/guitar"
-import { SequenceItemData } from "."
+import { PatternRecord, ChordRecord, SequenceItemData, getChordById } from "./Guitar"
 import CloseIcon from "~icons/mingcute/close-fill"
 import DragIcon from '~icons/mingcute/dots-fill';
 
 interface SequenceItemProps {
+  patterns: PatternRecord[]
+  chords: ChordRecord[]
   item: SequenceItemData
   onMerge?: VoidFunction
   onDelete: VoidFunction
@@ -71,12 +72,12 @@ export default function SequenceItem(props: SequenceItemProps) {
       <div class="card-body items-center text-center justify-start" style={{ gap: "8px" }}>
         {isMerged() ? (
           <div style={{ display: "flex", "align-items": "center", gap: "8px", "flex-wrap": "wrap", "justify-content": "center" }}>
-            <p class="text-sm font-bold">{allChords()[item().chord[0]].name}</p>
+            <p class="text-sm font-bold">{getChordById(props.chords, item().chord[0])?.name}</p>
             <div style={{ width: "1px", height: "30px", "background-color": "currentColor" }}></div>
-            <p class="text-sm font-bold">{allChords()[item().chord[1]!].name}</p>
+            <p class="text-sm font-bold">{getChordById(props.chords, item().chord[1]!)?.name}</p>
           </div>
         ) : (
-          <p class="text-sm font-bold">{allChords()[item().chord[0]].name}</p>
+          <p class="text-sm font-bold">{getChordById(props.chords, item().chord[0])?.name}</p>
         )}
 
         <div style={{ "min-width": "100%" }}>
@@ -87,9 +88,9 @@ export default function SequenceItem(props: SequenceItemProps) {
               if (e.currentTarget.value) onPatternChange()(e.currentTarget.value)
             }}
           >
-            {Object.entries(allPatterns()).map(([key, { name }]) => (
-              <option value={key}>{name}</option>
-            ))}
+            <For each={props.patterns}>
+              {({ id, name }) => <option value={id}>{name}</option>}
+            </For>
           </select>
         </div>
 

@@ -1,7 +1,6 @@
 import { createSignal, createMemo, Ref, createEffect, onMount } from "solid-js"
 import { nanoid } from "nanoid"
 import { Chord, playSequence, StrummingPattern, applyCapoToChord } from "~/utils/guitar"
-import { additionalChords, additionalPatterns, allChords, allPatterns, ChordRecord, PatternRecord, setAdditionalChords, setAdditionalPatterns } from "~/signals/guitar"
 import SequenceContainer from "./SequenceContainer"
 import PlayButton from "./PlayButton"
 import PatternSelector from "./PatternSelector"
@@ -10,6 +9,19 @@ import VolumeSelector from "./VolumeSelector"
 import CapoSelector from "./CapoSelector"
 import Chords from "./Chords"
 
+export interface ChordRecord {
+  id: string
+  name: string
+  chord: Chord
+  isEditable: boolean
+}
+
+export interface PatternRecord {
+  id: string
+  name: string
+  pattern: StrummingPattern
+}
+
 export interface SequenceItemData {
   id: string
   chord: [string] | [string, string]
@@ -17,22 +29,28 @@ export interface SequenceItemData {
   barre: number
 }
 
-export interface Song {
-  additionalPatterns: Record<string, PatternRecord>
-  additionalChords: Record<string, ChordRecord>
+export interface SongParameters {
+  additionalChords: ChordRecord[]
+  additionalPatterns: PatternRecord[]
   sequence: SequenceItemData[]
+  defaultPattern: string
   volume: number
   capo: number
   bpm: number
 }
 
 export type GuitarRef = {
-  getSong: () => Song
+  getSongParameters: () => SongParameters
 }
 
+export const getChordById = (chords: ChordRecord[], id: string) => chords.find(c => c.id === id)
+export const getPatternById = (patterns: PatternRecord[], id: string) => patterns.find(p => p.id === id)
+
 interface GuitarProps {
-  song?: Song
-  ref: Ref<GuitarRef>
+  defaultPatterns: PatternRecord[]
+  defaultChords: ChordRecord[]
+  song?: SongParameters
+  ref?: Ref<GuitarRef>
 }
 
 export default function Guitar(props: GuitarProps) {
@@ -42,29 +60,36 @@ export default function Guitar(props: GuitarProps) {
   const [volume, setVolume] = createSignal<number>(0.8)
   const [capo, setCapo] = createSignal<number>(0)
   const [currentPlayingIndex, setCurrentPlayingIndex] = createSignal<number>()
+  const [additionalChords, setAdditionalChords] = createSignal<ChordRecord[]>([])
+  const [additionalPatterns, setAdditionalPatterns] = createSignal<PatternRecord[]>([])
+
+  const chords = createMemo(() => ([...props.defaultChords, ...additionalChords()]))
+  const patterns = createMemo(() => ([...props.defaultPatterns, ...additionalPatterns()]))
 
   onMount(() => {
     if (!props.ref) return
 
-    const getSong = () => ({
-      additionalPatterns: additionalPatterns(),
+    const getSongParameters = () => ({
       additionalChords: additionalChords(),
+      additionalPatterns: additionalPatterns(),
       sequence: chordSequence(),
+      defaultPattern: selectedPattern(),
       volume: volume(),
       capo: capo(),
       bpm: bpm(),
     })
 
     if (typeof props.ref === "function") {
-      props.ref({ getSong })
+      props.ref({ getSongParameters })
     } else {
-      props.ref = { getSong }
+      props.ref = { getSongParameters }
     }
   })
 
   createEffect(() => {
-    setAdditionalChords(props.song?.additionalChords ?? {})
-    setAdditionalPatterns(props.song?.additionalPatterns ?? {})
+    setAdditionalChords(props.song?.additionalChords ?? [])
+    setAdditionalPatterns(props.song?.additionalPatterns ?? [])
+    setSelectedPattern(props.song?.defaultPattern ?? "D_UUD_UUD")
     setChordSequence(props.song?.sequence ?? [])
     setVolume(props.song?.volume ?? 0.8)
     setCapo(props.song?.capo ?? 0)
@@ -73,9 +98,24 @@ export default function Guitar(props: GuitarProps) {
 
   const isPlaying = createMemo(() => currentPlayingIndex() !== undefined)
 
-  const handlePatternAdd = (name: string, pattern: StrummingPattern) => {
-    setAdditionalPatterns(prev => ({ ...prev, [nanoid()]: { name, pattern } }))
+  const handleChordAdd = (chord: ChordRecord) => setAdditionalChords(prev => [...prev, chord])
+  const handleChordDelete = (id: string) => setAdditionalChords(prev => prev.filter(c => c.id !== id))
+
+  const handleChordUpdate = (updatedChord: ChordRecord) => {
+    setAdditionalChords(prev => {
+      const existingIndex = prev.findIndex(c => c.id === updatedChord.id)
+      if (existingIndex !== -1) {
+        const updatedChords = [...prev]
+        updatedChords[existingIndex] = updatedChord
+        return updatedChords
+      }
+      return prev
+    })
   }
+
+  const handlePatternAdd = (name: string, pattern: StrummingPattern) => setAdditionalPatterns(
+    existing => [...existing, { id: nanoid(), name, pattern }]
+  )
 
   const handleAddToSequence = (name: string) => {
     setChordSequence(prev => [...prev, { id: nanoid(), chord: [name], pattern: selectedPattern(), barre: 0 }])
@@ -95,7 +135,7 @@ export default function Guitar(props: GuitarProps) {
     const currentVolume = volume()
     const sequence = chordSequence().map(item => ({
       ...item,
-      pattern: allPatterns()[item.pattern].pattern.map(p => ({ ...p, vol: p.vol * currentVolume }))
+      pattern: getPatternById(patterns(), item.pattern)?.pattern.map(p => ({ ...p, vol: p.vol * currentVolume })) ?? []
     }))
 
     const transposedSequence = sequence.map(item => {
@@ -104,9 +144,9 @@ export default function Guitar(props: GuitarProps) {
 
       if (item.chord.length === 2) {
         const [c1, c2] = item.chord
-        transposedChord = [applyCapoToChord(allChords()[c1].chord, itemCapo), applyCapoToChord(allChords()[c2].chord, itemCapo)]
+        transposedChord = [applyCapoToChord(getChordById(chords(), c1)!.chord, itemCapo), applyCapoToChord(getChordById(chords(), c2)!.chord, itemCapo)]
       } else {
-        transposedChord = [applyCapoToChord(allChords()[item.chord[0]].chord, itemCapo)]
+        transposedChord = [applyCapoToChord(getChordById(chords(), item.chord[0])!.chord, itemCapo)]
       }
 
       return {
@@ -186,6 +226,7 @@ export default function Guitar(props: GuitarProps) {
       <div class="mb-8">
         <h2 class="mb-4 text-2xl font-bold">Strum Pattern</h2>
         <PatternSelector
+          patterns={patterns()}
           value={selectedPattern()}
           onChange={setSelectedPattern}
           onPatternSave={handlePatternAdd}
@@ -194,12 +235,20 @@ export default function Guitar(props: GuitarProps) {
 
       <div class="mb-8">
         <h2 class="mb-4 text-2xl font-bold">Your Chords</h2>
-        <Chords onAddToSequence={handleAddToSequence} />
+        <Chords
+          chords={chords()}
+          onChordAdd={handleChordAdd}
+          onChordUpdate={handleChordUpdate}
+          onChordDelete={handleChordDelete}
+          onAddToSequence={handleAddToSequence}
+        />
       </div>
 
       <div class="mb-8">
         <h2 class="mb-4 text-2xl font-bold">Sequence</h2>
         <SequenceContainer
+          chords={chords()}
+          patterns={patterns()}
           chordSequence={chordSequence()}
           currentPlayingIndex={currentPlayingIndex()}
           onDelete={handleDeleteChord}
