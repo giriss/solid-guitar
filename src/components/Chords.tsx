@@ -50,8 +50,8 @@ export default function Chords(props: ChordsProps) {
   }
 
   return (
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="flex flex-col">
+    <div class="grid grid-rows-2 grid-flow-col gap-4 overflow-x-auto pb-4">
+      <div class="flex flex-col w-64">
         <button
           class="card bg-base-200 border-2 border-dashed border-primary hover:border-primary-focus flex flex-col items-center justify-center p-4 cursor-pointer transition-colors flex-1"
           onClick={openCreateChordModal}

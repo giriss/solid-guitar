@@ -46,8 +46,8 @@ export default function GuitarPage() {
   }
 
   return (
-    <div class="p-8">
-      <div class="flex flex-wrap items-end gap-4 mb-8">
+    <div class="p-8 flex flex-col gap-8">
+      <div class="flex flex-wrap items-end gap-4">
         <div class="form-control w-full max-w-xs">
           <label class="label">
             <span class="label-text">Select a Song</span>

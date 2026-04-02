@@ -17,7 +17,7 @@ interface ChordCardProps {
 
 export default function ChordCard(props: ChordCardProps) {
   return (
-    <div class="card bg-neutral text-neutral-content w-full h-full relative group">
+    <div class="card bg-neutral text-neutral-content w-64 h-full relative group">
       <Show when={props.isEditable}>
         <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button

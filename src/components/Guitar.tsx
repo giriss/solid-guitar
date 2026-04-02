@@ -198,42 +198,44 @@ export default function Guitar(props: GuitarProps) {
   }
 
   return (
-    <div class="flex flex-col max-w-full">
-      <div class="mb-8">
-        <h2 class="mt-4 mb-4 text-2xl font-bold">Volume</h2>
-        <VolumeSelector
-          value={volume()}
-          onChange={setVolume}
-        />
+    <div class="flex flex-col max-w-full gap-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div>
+          <h2 class="mb-4 text-2xl font-bold">Volume</h2>
+          <VolumeSelector
+            value={volume()}
+            onChange={setVolume}
+          />
+        </div>
+
+        <div>
+          <h2 class="mb-4 text-2xl font-bold">BPM</h2>
+          <BpmSelector
+            value={bpm()}
+            onChange={setBpm}
+          />
+        </div>
+
+        <div>
+          <h2 class="mb-4 text-2xl font-bold">Capo</h2>
+          <CapoSelector
+            value={capo()}
+            onChange={setCapo}
+          />
+        </div>
+
+        <div>
+          <h2 class="mb-4 text-2xl font-bold">Strum Pattern</h2>
+          <PatternSelector
+            patterns={patterns()}
+            value={selectedPattern()}
+            onChange={setSelectedPattern}
+            onPatternSave={handlePatternAdd}
+          />
+        </div>
       </div>
 
-      <div class="mb-8">
-        <h2 class="mb-4 text-2xl font-bold">BPM</h2>
-        <BpmSelector
-          value={bpm()}
-          onChange={setBpm}
-        />
-      </div>
-
-      <div class="mb-8">
-        <h2 class="mb-4 text-2xl font-bold">Capo</h2>
-        <CapoSelector
-          value={capo()}
-          onChange={setCapo}
-        />
-      </div>
-
-      <div class="mb-8">
-        <h2 class="mb-4 text-2xl font-bold">Strum Pattern</h2>
-        <PatternSelector
-          patterns={patterns()}
-          value={selectedPattern()}
-          onChange={setSelectedPattern}
-          onPatternSave={handlePatternAdd}
-        />
-      </div>
-
-      <div class="mb-8">
+      <div>
         <h2 class="mb-4 text-2xl font-bold">Your Chords</h2>
         <Chords
           chords={chords()}
@@ -244,7 +246,7 @@ export default function Guitar(props: GuitarProps) {
         />
       </div>
 
-      <div class="mb-8">
+      <div>
         <h2 class="mb-4 text-2xl font-bold">Sequence</h2>
         <SequenceContainer
           chords={chords()}

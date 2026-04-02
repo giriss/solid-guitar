@@ -5,16 +5,16 @@ interface VolumeSelectorProps {
 
 export default function VolumeSelector(props: VolumeSelectorProps) {
   return (
-    <div class="flex items-center gap-4">
+    <div class="flex items-center gap-4 w-full">
       <input
-        class="range range-xs"
+        class="range range-primary range-xs flex-1"
         type="range"
         min="0"
         max="100"
         value={Math.round(props.value * 100)}
         onInput={(e) => props.onChange(parseInt(e.currentTarget.value) / 100)}
       />
-      <span class="min-w-20 font-bold">{Math.round(props.value * 100)}% VOL</span>
+      <span class="min-w-16 font-bold text-sm text-right">{Math.round(props.value * 100)}%</span>
     </div>
   )
 }
